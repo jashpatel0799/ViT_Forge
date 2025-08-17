@@ -5,7 +5,7 @@ import wandb
 
 
 def train_loop(model: torch.nn.Module, dataloader: torch.utils.data.DataLoader,
-               optimizer: torch.optim.optimizer, loss_fn: torch.nn.Module, accuracy_fn, 
+               optimizer: torch.optim.Optimizer, loss_fn: torch.nn.Module, accuracy_fn, 
                device: torch.device):
     """
     training loop for pytorch model
@@ -13,7 +13,7 @@ def train_loop(model: torch.nn.Module, dataloader: torch.utils.data.DataLoader,
     Args:
         model (torch.nn.Module): Pytorch model to train
         dataloader (torch.utils.data.DataLoader): train set dataloader
-        optimizer (torch.optim.optimizer): optimizer to optimize the model
+        optimizer (torch.optim.Optimizer): optimizer to optimize the model
         loss_fn (torch.nn.Module): loss function to calcualte loss
         accuracy_fn (_type_): accuracy function tomeasure the accuracy
         device (torch.device): device on which weight are load
@@ -110,7 +110,7 @@ def test_loop(model: torch.nn.Modeule, dataloader: torch.utils.data.DataLoader,
         
 
 def train(model: torch.nn.Module, train_dataloader: torch.utils.data.DataLoader, 
-          test_dataloader: torch.utils.data.DataLoader, optimizer: torch.optim.optimizer,
+          test_dataloader: torch.utils.data.DataLoader, optimizer: torch.optim.Optimizer,
           loss_fn: torch.nn.Module, accuracy_fn, epoches: int, device: torch.device, args):
     
     """
