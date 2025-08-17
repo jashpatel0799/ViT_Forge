@@ -216,12 +216,16 @@ class Resudial(nn.Module):
         
 class feedForward(nn.Module):
     def __init__(self, emb_size:int = 768, expansion: int = 4, drop_p:float = 0.0):
-        super().__init__(
+        super().__init__()
+        self.net = nn.Sequential(
             nn.Linear(emb_size, emb_size*expansion),
             nn.GELU(),
             nn.Dropout(drop_p),
             nn.Linear(emb_size*expansion, emb_size)
         )
+
+    def forward(self, x):
+        return self.net(x)
         
         
 class TrabsformerEncoderBlock(nn.Module):
@@ -293,7 +297,7 @@ class vit(nn.Module):
                                               patch_size=patch_size, img_size=img_size, 
                                               batch_size=batch_size, num_heads=num_heads, 
                                               pos_type=pos_type)
-        self.encoder = transformerEncoder(depth=12, emb_size=embedding_size, num_heads = num_heads, **kwargs)
+        self.encoder = transformerEncoder(depth=depth, emb_size=embedding_size, num_heads = num_heads, **kwargs)
         self.classifier = classication(emb_size=embedding_size, num_class=num_class)
         
         
