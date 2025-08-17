@@ -62,7 +62,7 @@ def train_loop(model: torch.nn.Module, dataloader: torch.utils.data.DataLoader,
     
     return train_loss, train_acc, model
 
-def test_loop(model: torch.nn.Modeule, dataloader: torch.utils.data.DataLoader,
+def test_loop(model: torch.nn.Module, dataloader: torch.utils.data.DataLoader,
               loss_fn: torch.nn.Module, accuracy_fn, device: torch.device):
     
     """
