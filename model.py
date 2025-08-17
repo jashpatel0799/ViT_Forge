@@ -86,7 +86,7 @@ def apply_vit_rope(xq: Tensor, xk: Tensor, freqs_cis: Tensor) -> Tensor:
     # out xqk reshape: torch.Size([1, 8, 196, 96]) 	torch.Size([1, 8, 196, 96])
     return xq_out, xk_out
 
-class patchEmbedding(nn.module):
+class patchEmbedding(nn.Module):
     def __init__(self, in_channel: int = 3, emb_size: int = 768, patch_size: int = 16, img_size: int = 224, batch_size : int = 8, num_heads : int = 8, pos_type: str = 'linear'):
         super().__init__()
         
