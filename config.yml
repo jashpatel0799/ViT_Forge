@@ -14,6 +14,6 @@ num_head: 8
 vit_depth: 12
 batch_size: 32
 num_class: 10
-pos_emb_type: "sinsinusoidal" #linear sinsinusoidal rope
+pos_emb_type: "rope" #linear sinsinusoidal rope
 wandb_project: "vit-small-data"
 output_dir: "results"
