@@ -98,10 +98,12 @@ def main(args):
     loss_fn = torch.nn.CrossEntropyLoss()
     accuracy_fn = MulticlassAccuracy(num_classes = NUM_CLASSES).to(DEVICE)
     optimizer = torch.optim.SGD(vit_model.parameters(), lr=LEARNING_RATE, weight_decay=0.03)
+    
+    train_dataloader, test_dataloader = data.prepare_dataloader(args)
 
     train_model, train_loss, test_loss, train_acc, test_acc = train.train(model=vit_model,
-                                                                        train_dataloader=data.train_dataloader,
-                                                                        test_dataloader=data.test_dataloader,
+                                                                        train_dataloader=train_dataloader,
+                                                                        test_dataloader=test_dataloader,
                                                                         optimizer=optimizer,
                                                                         loss_fn=loss_fn,
                                                                         accuracy_fn=accuracy_fn,

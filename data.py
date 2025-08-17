@@ -11,6 +11,12 @@ transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
-
-train_dataloader = CIFAR10(root = "./data", train=True, transform=transform, download=True)
-test_dataloader = CIFAR10(root = "./data", train=False, transform=transform, download=True)
+def prepare_dataloader(args):
+    
+    train_dataset = CIFAR10(root = "./data", train=True, transform=transform, download=True)
+    test_dataset = CIFAR10(root = "./data", train=False, transform=transform, download=True)
+    
+    train_dataloader = DataLoader(train_dataset, batch_size = args['batch_size'], shuffle = True, drop_last = True)
+    test_dataloader = DataLoader(test_dataset, batch_size = args['batch_size'], shuffle = False, drop_last = True)
+    
+    return train_dataloader, test_dataloader
