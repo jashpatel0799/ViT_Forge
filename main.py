@@ -2,7 +2,7 @@ import argparse
 import yaml
 import torch
 import torch.nn as nn
-from torchmetrices.classification import MulticlassAccuracy
+from torchmetrics.classification import MulticlassAccuracy
 import random
 import numpy as np
 import data, model, train, utils

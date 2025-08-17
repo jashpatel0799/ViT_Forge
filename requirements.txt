@@ -1,8 +1,8 @@
 tqdm
 matplotlib
-torchmetrics
 torch
 torchvision
 einops
 torch-summary
+torchmetrics
 wandb
