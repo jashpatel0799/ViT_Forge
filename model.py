@@ -72,6 +72,9 @@ class EmbedND(nn.Module):
     
 def apply_vit_rope(xq: Tensor, xk: Tensor, freqs_cis: Tensor) -> Tensor:
     # xqk shape: torch.Size([1, 8, 196, 96]) 	torch.Size([1, 8, 196, 96]) 	torch.Size([1, 1, 196, 48, 2, 2])
+    xq_cls, xq = xq[:, :, :1, :], xq[:, : , 1:, :]
+    xk_cls, xk = xk[:, :, :1, :], xk[:, : , 1:, :]
+    
     xq_ = xq.float().reshape(*xq.shape[:-1], -1, 1, 2)
     xk_ = xk.float().reshape(*xk.shape[:-1], -1, 1, 2)
     
@@ -82,6 +85,9 @@ def apply_vit_rope(xq: Tensor, xk: Tensor, freqs_cis: Tensor) -> Tensor:
     # out xqk: torch.Size([1, 8, 196, 48, 2]) 	torch.Size([1, 8, 196, 48, 2])
     xq_out = xq_out.reshape(*xq_out.shape)
     xk_out = xk_out.reshape(*xk_out.shape)
+    
+    xq_out = torch.cat([xq_cls, xq_out], dim=2)
+    xk_out = torch.cat([xk_cls, xk_out], dim=2)
     
     # out xqk reshape: torch.Size([1, 8, 196, 96]) 	torch.Size([1, 8, 196, 96])
     return xq_out, xk_out
