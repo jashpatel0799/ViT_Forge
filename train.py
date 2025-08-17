@@ -142,12 +142,12 @@ def train(model: torch.nn.Module, train_dataloader: torch.utils.data.DataLoader,
     
     for epoch in tqdm(range(epoches)):
         
-        train_loss, train_acc, train_model = train_loop(model=model, train_dataloader=train_dataloader, 
+        train_loss, train_acc, train_model = train_loop(model=model, dataloader=train_dataloader, 
                                                    optimizer=optimizer, loss_fn=loss_fn, 
                                                    accuracy_fn=accuracy_fn, device=device)
         
         
-        test_loss, test_acc = test_loop(model=model, test_dataloader=test_dataloader, loss_fn=loss_fn,
+        test_loss, test_acc = test_loop(model=model, dataloader=test_dataloader, loss_fn=loss_fn,
                                    accuracy_fn=accuracy_fn, device=device)
         
         
