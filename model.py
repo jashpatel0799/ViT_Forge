@@ -278,13 +278,25 @@ class transformerEncoder(nn.Module):
         
         
                
+# class classication(nn.Module):
+#     def __init__(self, emb_size: int = 768, num_class: int = 1000):
+#         super().__init__(
+#             Reduce('b n e -> b e', reduction = 'mean'),
+#             nn.LayerNorm(emb_size),
+#             nn.Linear(emb_size, num_class)
+#         )
+
 class classication(nn.Module):
     def __init__(self, emb_size: int = 768, num_class: int = 1000):
-        super().__init__(
-            Reduce('b n e -> b e', reduction = 'mean'),
+        super().__init__()
+        self.classifier = nn.Sequential(
+            Reduce('b n e -> b e', reduction='mean'),
             nn.LayerNorm(emb_size),
             nn.Linear(emb_size, num_class)
         )
+
+    def forward(self, x):
+        return self.classifier(x)
         
         
         
