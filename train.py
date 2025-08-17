@@ -53,7 +53,7 @@ def train_loop(model: torch.nn.Module, dataloader: torch.utils.data.DataLoader,
         # 5. Optimizer step
         optimizer.step()
         
-        acc = accuracy_fn(torch.argemax(train_pred,dim=1), y_train)
+        acc = accuracy_fn(torch.argmax(train_pred,dim=1), y_train)
         
         train_acc += acc
         train_loss += loss
