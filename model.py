@@ -84,8 +84,8 @@ def apply_vit_rope(xq: Tensor, xk: Tensor, freqs_cis: Tensor) -> Tensor:
     xk_out = freqs_cis[...,0] * xk_[...,0] + freqs_cis[..., 1] * xk_[...,1]
     
     # out xqk: torch.Size([1, 8, 196, 48, 2]) 	torch.Size([1, 8, 196, 48, 2])
-    xq_out = xq_out.reshape(*xq_out.shape)
-    xk_out = xk_out.reshape(*xk_out.shape)
+    xq_out = xq_out.reshape(*xq.shape)
+    xk_out = xk_out.reshape(*xk.shape)
     
     xq_out = torch.cat([xq_cls, xq_out], dim=2)
     xk_out = torch.cat([xk_cls, xk_out], dim=2)
