@@ -36,7 +36,7 @@ def train_loop(model: torch.nn.Module, dataloader: torch.utils.data.DataLoader,
     for batch, (x_train, y_train) in enumerate(dataloader):
         
         # x_train, y_train = x_train.to(device), y_train.to(device)
-        x_train, y_train = x_train.to(device), torch.tensor(y_train, device=device)
+        x_train, y_train = x_train.to(device), torch.tensor(y_train.clone().detach(), device=device)
         
         # 1. Forward step
         train_pred = model(x_train)
@@ -91,8 +91,8 @@ def test_loop(model: torch.nn.Module, dataloader: torch.utils.data.DataLoader,
     with torch.inference_mode(): #with torch.no_grad:
         for x_test, y_test in dataloader:
             
-            x_test, y_test = x_test.to(device), y_test.to(device)
-            x_test, y_test = x_test.to(device), torch.tensor(y_test, device=device)
+            # x_test, y_test = x_test.to(device), y_test.to(device)
+            x_test, y_test = x_test.to(device), torch.tensor(y_test.clone().detach(), device=device)
             
             test_pred = model(x_test)
             
