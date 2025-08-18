@@ -97,6 +97,10 @@ class patchEmbedding(nn.Module):
     def __init__(self, in_channel: int = 3, emb_size: int = 768, patch_size: int = 16, img_size: int = 224, batch_size : int = 8, num_heads : int = 8, pos_type: str = 'linear'):
         super().__init__()
         
+        self.img_size = img_size
+        self.patch_size = patch_size
+        self.batch_size = batch_size
+        self.pos_type = pos_type
         self.projection = nn.Sequential(
             # input shape [1, 3, 224, 224]
             nn.Conv2d(in_channels=in_channel, out_channels=emb_size, kernel_size=patch_size, stride=patch_size, padding=0),
@@ -128,14 +132,15 @@ class patchEmbedding(nn.Module):
         elif pos_type == 'rope':
             self.axes_dim = [8, 44, 44]
             self.theta = 10000
-            self.img_ids = prepare_image_ids(img_size=img_size, patch_size=patch_size, batch_size=batch_size)
+            # self.img_ids = prepare_image_ids(img_size=img_size, patch_size=patch_size, batch_size=batch_size)
             self.pe_dim = emb_size // num_heads
             self.pe_embedds = EmbedND(self.pe_dim, self.theta, self.axes_dim)
-            self.pe = self.pe_embedds(self.img_ids)
+            # self.pe = self.pe_embedds(self.img_ids)
+            
             
             
         
-    def forward(self, x:Tensor) -> Tensor:
+    def forward(self, x:Tensor):
         x = x.to(device)
         
         b, _, _, _ = x.shape
@@ -152,12 +157,20 @@ class patchEmbedding(nn.Module):
         
         # x += self.positions
         # # shape [1, 197, 768]
-        if hasattr(self, 'positions'):
+        if self.pos_type == 'linear' or self.pos_type == "sinusoidal":
             x += self.positions
             return x, None
         
-        elif hasattr(self, 'pe'):
-            return x, self.pe
+        elif self.pos_type == 'rope':
+            # return x, self.pe
+            img_ids = prepare_image_ids(img_size=self.img_size, patch_size=self.patch_size, batch_size=self.batch_size)
+            pe = self.pe_embedds(img_ids)
+            return x, pe
+        
+        else:
+            print("\n Wrong Pos name go to default (linear)")
+            x += self.positions
+            return x, None
         
         # return x
         

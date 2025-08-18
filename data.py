@@ -5,13 +5,15 @@ from torchvision.datasets import CIFAR10
 from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
 
-transform = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
-    transforms.ToTensor()
-])
+
+
 
 def prepare_dataloader(args):
+    transform = transforms.Compose([
+                    transforms.Resize(args['input_image_size']),
+                    # transforms.CenterCrop(224),
+                    transforms.ToTensor()
+                ])
     
     train_dataset = CIFAR10(root = "./data", train=True, transform=transform, download=True)
     test_dataset = CIFAR10(root = "./data", train=False, transform=transform, download=True)
