@@ -1,5 +1,4 @@
 import torch
-from timeit import default_timer as timer
 from tqdm.auto import tqdm
 import wandb
 
@@ -23,10 +22,6 @@ def train_loop(model: torch.nn.Module, dataloader: torch.utils.data.DataLoader,
         train_loss: loss value
         train_acc: accuract\y value
         
-    Eample:
-        train_loop(model=model, dataloader=train_dataloader, 
-                    optimizer=optimizer, loss_fn=loss_fn, 
-                    accuracy_fn=accuracy_fn, device=device)
     """
     
     train_loss, train_acc = 0, 0
@@ -81,9 +76,6 @@ def test_loop(model: torch.nn.Module, dataloader: torch.utils.data.DataLoader,
         test_loss: loss value
         test_acc: accuract\y value
         
-    Eample:
-        test_loop(model=model, dataloader=test_dataloader, 
-                  loss_fn=loss_fn, accuracy_fn=accuracy_fn, device=device)
     """
     
     test_loss, test_acc = 0, 0
@@ -132,9 +124,7 @@ def train(model: torch.nn.Module, train_dataloader: torch.utils.data.DataLoader,
         list of train and test model loss and accuracy 
         train also return model weights
         
-    Example:
-        train(model = model_0, train_dataloader = traindataloader, test_dataloader = testdataloader,
-              optimizer = optim, loss_fn = lossfunction, accuracy_fn = accuracyfunction, epoches=n, device=device)
+    
     """
     
     wandb.init(project=args['wandb_project'], name=args['wandb_runname'], config=args)
@@ -144,7 +134,7 @@ def train(model: torch.nn.Module, train_dataloader: torch.utils.data.DataLoader,
     
     for epoch in tqdm(range(epoches)):
         
-        train_loss, train_acc, train_model = train_loop(model=model, dataloader=train_dataloader, 
+        train_loss, train_acc, model = train_loop(model=model, dataloader=train_dataloader, 
                                                    optimizer=optimizer, loss_fn=loss_fn, 
                                                    accuracy_fn=accuracy_fn, device=device)
         
@@ -170,4 +160,4 @@ def train(model: torch.nn.Module, train_dataloader: torch.utils.data.DataLoader,
         
     wandb.finish()
         
-    return train_model, train_losses, test_losses, train_acces, test_acces
+    return model, train_losses, test_losses, train_acces, test_acces
