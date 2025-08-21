@@ -4,12 +4,12 @@ from pathlib import Path
 
 def save_model(model: torch.nn.Module, traget_dir: str, model_name: str):
     """
-    Save the train model weights
+    Save model weights to specific directory
 
     Args:
-        model (torch.nn.Module): model weights which you want to save
-        traget_dir (str): laction wher you want to save model weights
-        model_name (str): model name vith extention
+        model (torch.nn.Module): train model weight that you want to save
+        traget_dir (str): directary path where you want to save model weights
+        model_name (str): model name by which you want to save model
         
     Example: 
         save_model(model=model_0, traget_dir = dir_path, model_name = "modl.pth")
@@ -18,7 +18,7 @@ def save_model(model: torch.nn.Module, traget_dir: str, model_name: str):
     traget_dir_path = Path(traget_dir)
     traget_dir_path.mkdir(parents=True, exist_ok=True)
     
-    assert model_name.endswith(".pth") or model_name.endswith(".pt"), "model name should be ends with pt or pth"
+    assert model_name.endswith((".pth", ".pt")), "model name should be ends with pt or pth"
     model_save_path = traget_dir_path / model_name
     
     print(f"\n Saving Model At: {model_save_path}")
@@ -38,9 +38,14 @@ def load_model(model: torch.nn.Module, model_path : str):
     """
     model.load_state_dict(torch.load(f = model_path, map_location=torch.device('cpu')))
     print(f"\nModel Loaded.")
+    return model
     
     
-def plot(train_losses: list[float], test_losses: list[float], train_accs: list[float], test_accs: list[float], fig_name: str):
+def plot(train_losses: list[float], 
+         test_losses: list[float], 
+         train_accs: list[float], 
+         test_accs: list[float], 
+         fig_name: str):
     """
     plot loss and accuarcy of train and test data
     Args:
@@ -57,15 +62,21 @@ def plot(train_losses: list[float], test_losses: list[float], train_accs: list[f
     plt.subplot(1,2,1)
     plt.plot(range(len(train_losses)), train_losses, label = "Train Loss")
     plt.plot(range(len(test_losses)), test_losses, label = "Test Loss")
+    plt.title("Loss ove Epoch")
     plt.legend()
     plt.xlabel("Epoches")
     plt.ylabel("Loss")
+    plt.grid(True, linestyle='--', alpha=0.6)
     
     plt.subplot(1,2,2)
     plt.plot(range(len(train_accs)), train_accs, label = "Train Accuracy")
     plt.plot(range(len(test_accs)), test_accs, label = "Test Accuracy")
+    plt.title("Accuracy over Epoch")
     plt.legend()
     plt.xlabel("Epoches")
     plt.ylabel("Accuracy")
+    plt.grid(True, linestyle='--', alpha=0.6)
     
     plt.savefig(fig_name)
+    plt.close()
+    print(f"Loss and Accuracy curve save at: {fig_name}")
