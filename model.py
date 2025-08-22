@@ -1,7 +1,19 @@
+"""
+model.py
+
+Vision Transformer implement with support for:
+- Linear positional Embedding
+- Sinusoidal positional Embedding
+- Rotary positional Embedding (RoPE)
+
+Core Components:
+- 
+
+"""
+
 import torch
 import torch.nn  as nn
 from torch import Tensor
-from PIL import Image
 import torch.nn.functional as F
 import numpy as np
 
@@ -11,16 +23,41 @@ from einops.layers.torch import Rearrange, Reduce
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
+# -----------------------------------------------------------------------------------------------------
+# Positional Encoder Helper
+# -----------------------------------------------------------------------------------------------------
 
 def prepare_image_ids(img_size: int, patch_size: int, batch_size: int) -> Tensor:
-    img_ids = torch.zeros(img_size // patch_size, img_size // patch_size, 3) # (14, 14, 3)
-    img_ids[..., 1] = img_ids[..., 1] + torch.arange(img_size // patch_size)[:, None]
-    img_ids[..., 2] = img_ids[..., 2] + torch.arange(img_size // patch_size)[None, :]
+    """
+    Prepare image coordinate for rope embeding
+    Return ids for each patch in the image grid
+    
+    Args:
+        img_size (int): Input image size
+        patch_size (int): Size of each patch
+        batch_size (int): batch size
+        
+    """
+    h = w = img_size // patch_size
+    img_ids = torch.zeros(h, w, 3) # (14, 14, 3)
+    img_ids[..., 1] = img_ids[..., 1] + torch.arange(h)[:, None]
+    img_ids[..., 2] = img_ids[..., 2] + torch.arange(w)[None, :]
     img_ids = repeat(img_ids, "h w c -> b (h w) c", b = batch_size)
     
     return img_ids
 
 def vit_rope(pos: Tensor, dim: int, theta: int):
+    """
+    Compute Rotary Positional Embedding (RoPE)
+    
+    Args:
+        pos (Tensor): Position tensor [batch, n]
+        dim (int): Embedding dimension per head.
+        theta (int): Base frequency.
+        
+    Returns:
+        Tensor: RoPE embedding [batch, n, dim/2, 2, 2]
+    """
     assert dim % 2 == 0
     
     # pos shape: [1, 196] 	 dim: 8 	 theta: 10000
@@ -55,6 +92,9 @@ def vit_rope(pos: Tensor, dim: int, theta: int):
     return freqs_out
 
 class EmbedND(nn.Module):
+    """
+    N-dimentionsl embedding for RoPE.
+    """
     def __init__(self, dim: int, theta: int, axes_dim: list[int]):
         super().__init__()
         self.dim = dim
@@ -71,6 +111,17 @@ class EmbedND(nn.Module):
         return emb.unsqueeze(1)
     
 def apply_vit_rope(xq: Tensor, xk: Tensor, freqs_cis: Tensor) -> Tensor:
+    """
+    Apply rotary embeddings to queries and keys.
+
+    Args:
+        xq (Tensor): Query tensor [B, H, N, D].
+        xk (Tensor): Key tensor [B, H, N, D].
+        freqs_cis (Tensor): RoPE embeddings.
+
+    Returns:
+        tuple: Rotated queries and keys.
+    """
     # xqk shape: torch.Size([1, 8, 196, 96]) 	torch.Size([1, 8, 196, 96]) 	torch.Size([1, 1, 196, 48, 2, 2])
     xq_cls, xq = xq[:, :, :1, :], xq[:, : , 1:, :]
     xk_cls, xk = xk[:, :, :1, :], xk[:, : , 1:, :]
@@ -93,7 +144,12 @@ def apply_vit_rope(xq: Tensor, xk: Tensor, freqs_cis: Tensor) -> Tensor:
     # out xqk reshape: torch.Size([1, 8, 196, 96]) 	torch.Size([1, 8, 196, 96])
     return xq_out, xk_out
 
+
+# -----------------------------------------------------------------------------------------------------
+# Vision Transformer Components
+# -----------------------------------------------------------------------------------------------------
 class patchEmbedding(nn.Module):
+    """Convert Image into patch embedings"""
     def __init__(self, in_channel: int = 3, emb_size: int = 768, patch_size: int = 16, img_size: int = 224, batch_size : int = 8, num_heads : int = 8, pos_type: str = 'linear'):
         super().__init__()
         
@@ -101,6 +157,7 @@ class patchEmbedding(nn.Module):
         self.patch_size = patch_size
         self.batch_size = batch_size
         self.pos_type = pos_type
+        
         self.projection = nn.Sequential(
             # input shape [1, 3, 224, 224]
             nn.Conv2d(in_channels=in_channel, out_channels=emb_size, kernel_size=patch_size, stride=patch_size, padding=0),
@@ -111,23 +168,14 @@ class patchEmbedding(nn.Module):
         )
         
         self.cls_token = nn.Parameter(torch.randn(1, 1, emb_size))
+        
+        self.max_seq_length = (img_size // patch_size)**2 + 1
+        
         if pos_type == 'linear':
-            self.positions = nn.Parameter(torch.randn((img_size // patch_size)**2 + 1, emb_size))
+            self.positions = nn.Parameter(torch.randn(self.max_seq_length, emb_size))
         
         elif pos_type == 'sinusoidal':
-            max_seq_length = (img_size // patch_size)**2 + 1
-            positions = torch.zeros(max_seq_length, emb_size) 
-            
-            
-            for pos in range(max_seq_length):
-                for i in range(emb_size):
-                    if i % 2 == 0:
-                        positions[pos][i] = np.sin(pos/(10000 ** (i/emb_size)))
-                    else:
-                        positions[pos][i] = np.cos(pos/(10000 ** ((i-1)/emb_size)))
-            
-            # self.register_buffer('positions', positions.unsqueeze(0)) # for excludes it from training parameters
-            self.positions = nn.Parameter(positions.unsqueeze(0))
+            self.positions = self._build_sinusoidal(self.max_seq_length, emb_size)
             
         elif pos_type == 'rope':
             self.axes_dim = [8, 44, 44]
@@ -138,7 +186,20 @@ class patchEmbedding(nn.Module):
             # self.pe = self.pe_embedds(self.img_ids)
             
             
+    def _build_sinusoidal(self, max_seq_length: int, emb_size: int) -> nn.Parameter:
+        positions = torch.zeros(max_seq_length, emb_size) 
             
+            
+        for pos in range(max_seq_length):
+            for i in range(emb_size):
+                if i % 2 == 0:
+                    positions[pos][i] = np.sin(pos/(10000 ** (i/emb_size)))
+                else:
+                    positions[pos][i] = np.cos(pos/(10000 ** ((i-1)/emb_size)))
+        
+        # self.register_buffer('positions', positions.unsqueeze(0)) # for excludes it from training parameters
+        return nn.Parameter(positions.unsqueeze(0))
+          
         
     def forward(self, x:Tensor):
         x = x.to(device)
@@ -168,15 +229,14 @@ class patchEmbedding(nn.Module):
             return x, pe
         
         else:
-            print("\n Wrong Pos name go to default (linear)")
-            x += self.positions
-            return x, None
+            raise ValueError(f"Unknown position type: {self.pos_type}")
         
         # return x
         
 
 
 class multiHeadAttention(nn.Module):
+    """Multi-Head Self Attention layer."""
     def __init__(self, emb_size:int = 768, num_heads:int = 8, dropouts: float = 0.1):
         super().__init__()
         
@@ -220,6 +280,7 @@ class multiHeadAttention(nn.Module):
 
         
 class Resudial(nn.Module):
+    
     def __init__(self, fn):
         super().__init__()
         
@@ -235,6 +296,7 @@ class Resudial(nn.Module):
         
         
 class feedForward(nn.Module):
+    """Feedforward MLP in Transformer block."""
     def __init__(self, emb_size:int = 768, expansion: int = 4, drop_p:float = 0.0):
         super().__init__()
         self.net = nn.Sequential(
@@ -249,6 +311,7 @@ class feedForward(nn.Module):
         
         
 class TrabsformerEncoderBlock(nn.Module):
+    """Single Transformer Encoder block."""
     def __init__(self, emb_size: int = 768, num_heads : int = 8, drop_out: float = 0.1, forward_expansion: int = 4, froward_drop_p: float = 0, **kwargs):
         # super().__init__(
         #     Resudial(nn.Sequential(
@@ -286,6 +349,7 @@ class TrabsformerEncoderBlock(nn.Module):
  
         
 class transformerEncoder(nn.Module):
+    """Stack of Transformer Encoder blocks."""
     def __init__(self, depth:int = 12, **kwargs):
         super().__init__()
         self.layer = nn.ModuleList([TrabsformerEncoderBlock(**kwargs) for _ in range(depth)])
@@ -307,6 +371,7 @@ class transformerEncoder(nn.Module):
 #         )
 
 class classication(nn.Module):
+    """Final classification head."""
     def __init__(self, emb_size: int = 768, num_class: int = 1000):
         super().__init__()
         self.classifier = nn.Sequential(
@@ -321,6 +386,7 @@ class classication(nn.Module):
         
         
 class vit(nn.Module):
+    """Vision Transformer (ViT)."""
     def __init__(self, in_channel: int = 3, img_size: int = 224, patch_size: int = 16, 
                  num_heads: int = 8, embedding_size: int = 768, batch_size: int = 8, 
                  depth: int = 12, num_class: int = 1000, pos_type: str = "linear", **kwargs):
