@@ -1,8 +1,28 @@
+# main.py
+"""
+Main entry for curriculum learning with a fixed 100-class ViT head.
+
+Curriculum (in order, each for 10 epochs by default unless overridden in config):
+  1) MNIST
+  2) EMNIST (balanced, 47 classes)
+  3) FashionMNIST
+  4) SVHN
+  5) CIFAR10
+  6) CIFAR100
+Final evaluation:
+  - STL10 test set
+
+Key features:
+  - Single model through all stages (no head swapping).
+  - Slice logits to active dataset class count during loss/accuracy calculation.
+  - W&B logging per stage.
+  - Save a checkpoint *after each stage*.
+"""
 import argparse
 import yaml
+import os
 import torch
 import torch.nn as nn
-from torchmetrics.classification import MulticlassAccuracy
 import random
 import numpy as np
 import data, model, train, utils
@@ -31,30 +51,30 @@ def set_seed(seed: int):
     torch.backends.cudnn.deterministic = True  
     torch.backends.cudnn.benchmark = False
 
-def main(args):
+def main(cfgs: dict):
     
    print("\n")
-   print(f"Experiment Name: {args['exp_name']}")
-   print(f"Experiment Model Number: {args['model_num']}")
-   print(f"Optimizer used: {args['optimizer_name']}")
-   print(f"Experiment Details: {args['details']}")
+   print(f"Experiment Name: {cfgs['exp_name']}")
+   print(f"Experiment Model Number: {cfgs['model_num']}")
+   print(f"Optimizer used: {cfgs['optimizer_name']}")
+   print(f"Experiment Details: {cfgs['details']}")
    print("\n")
-   print(f"Dataset Name: {args['dataset_name']}")
-   print(f"Seed: {args['seed']}")
-   print(f"Number of Epochs: {args['num_epoch']}")
-   print(f"Learning Rate: {args['learning_rate']}")
-   print(f"Input Channel: {args['input_channel']}")
-   print(f"Input Image Size: {args['input_image_size']}")
-   print(f"Patch Size: {args['patch_size']}")
-   print(f"Embedding Size: {(args['patch_size'] ** 2) * 3}")
-   print(f"Number of Heads: {args['num_head']}")
-   print(f"ViT Depth: {args['vit_depth']}")
-   print(f"Batch Size: {args['batch_size']}")
-   print(f"Number of Classes: {args['num_class']}")
-   print(f"Position Embed Use: {args['pos_emb_type']}")
-   print(f"WandB Project: {args['wandb_project']}")
-   print(f"WandB Run Name: {args['wandb_runname']}")
-   print(f"Output Directory: {args['output_dir']}")
+   print(f"Dataset Name: {cfgs['dataset_name']}")
+   print(f"Seed: {cfgs['seed']}")
+   print(f"Number of Epochs: {cfgs['num_epoch']}")
+   print(f"Learning Rate: {cfgs['learning_rate']}")
+   print(f"Input Channel: {cfgs['input_channel']}")
+   print(f"Input Image Size: {cfgs['input_image_size']}")
+   print(f"Patch Size: {cfgs['patch_size']}")
+   print(f"Embedding Size: {(cfgs['patch_size'] ** 2) * 3}")
+   print(f"Number of Heads: {cfgs['num_head']}")
+   print(f"ViT Depth: {cfgs['vit_depth']}")
+   print(f"Batch Size: {cfgs['batch_size']}")
+   print(f"Number of Classes: {cfgs['num_class']}")
+   print(f"Position Embed Use: {cfgs['pos_emb_type']}")
+   print(f"WandB Project: {cfgs['wandb_project']}")
+   print(f"WandB Run Name: {cfgs['wandb_runname']}")
+   print(f"Output Directory: {cfgs['output_dir']}")
    print("\n")
    
    
@@ -72,75 +92,125 @@ def main(args):
    # POS_EMB_TYPE = "linear"
    
    # HYPERPARAMETERS
-   EXP_NAME = args['exp_name']
-   MODEL_NUM = args['model_num']
-   OPTIMIZER = args['optimizer_name']
-   DATASET = args['dataset_name']
-   EXP = EXP_NAME + "_" + DATASET
-   SEED = args['seed']
-   NUM_EPOCH = args['num_epoch']
-   LEARNING_RATE = float(args['learning_rate'])#3e-4 # 3e-4, 4e-5, 7e-6, 5e-7, 3e-9
-   INCHANNEL = args['input_channel']
-   IMG_SIZE = args['input_image_size']
-   PATCH_SIZE = args['patch_size']
-   EMBED_SIZE = (PATCH_SIZE ** 2) * INCHANNEL # args['embedding_size']  
-   NUM_HEADS = args['num_head']
-   DEPTH = args['vit_depth']
-   POS_EMB_TYPE = args['pos_emb_type']
-   BATCH_SIZE = args['batch_size']
-   NUM_CLASSES = args['num_class']
+   # ------------------------------ Config ----------------------------------------
+   # Expect these keys in your config.yml (with defaults for safety):
+   seed = int(cfg.get("seed", 42))
+   exp_name        = cfgs.get("exp_name", "vit_curriculum")
+   dataset_root    = cfgs.get("dataset_root", "./data")
+   image_size      = int(cfgs.get("input_image_size", 96))
+   batch_size      = int(cfgs.get("batch_size", 64))
+   learning_rate   = float(cfgs.get("learning_rate", 1e-3))
+   weight_decay    = float(cfgs.get("weight_decay", 0.03))
+   num_heads       = int(cfgs.get("num_head", 8))
+   patch_size      = int(cfgs.get("patch_size", 16))
+   embed_size      = (patch_size ** 2) * in_channels
+   vit_depth       = int(cfgs.get("vit_depth", 12))
+   in_channels     = int(cfgs.get("input_channel", 3))
+   pos_type        = cfgs.get("pos_emb_type", "linear")
+   output_dir      = cfgs.get("output_dir", "./checkpoints")
+   os.makedirs(output_dir, exist_ok=True)
    
-   DEVICE = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
+   # Curriculum stages (name, epochs). You asked: 10 each.
+   # You can override in config with `curriculum` list if you prefer.
+   curriculum = cfgs.get("curriculum", [
+      {"name": "mnist",        "epochs": 10},
+      {"name": "emnist",       "epochs": 10},
+      {"name": "fashionmnist", "epochs": 10},
+      {"name": "svhn",         "epochs": 10},
+      {"name": "cifar10",      "epochs": 10},
+      {"name": "cifar100",     "epochs": 10},
+   ])
+   
+   device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
 
-   set_seed(SEED)
+   set_seed(seed)
 
-   vit_model = model.vit(in_channel=INCHANNEL, img_size=IMG_SIZE, patch_size=PATCH_SIZE, 
-                     num_heads=NUM_HEADS, embedding_size=EMBED_SIZE, batch_size=BATCH_SIZE, 
-                     depth=DEPTH, num_class=NUM_CLASSES, pos_type=POS_EMB_TYPE).to(DEVICE)
+   # ------------------------------ Model -----------------------------------------
+   # IMPORTANT: Fix classifier head to 100 (max classes). Keep this consistent!
+   fixed_num_classes = 100
+   vit_model = model.vit(in_channel=in_channels, img_size=image_size, patch_size=patch_size, 
+                     num_heads=num_heads, embedding_size=embed_size, batch_size=batch_size, 
+                     depth=vit_depth, num_class=fixed_num_classes, pos_type=pos_type).to(device)
    
 #  model summary
-   summary(vit_model, (INCHANNEL, IMG_SIZE, IMG_SIZE))   
+   summary(vit_model, (in_channels, image_size, image_size))   
 
    loss_fn = torch.nn.CrossEntropyLoss()
-   accuracy_fn = MulticlassAccuracy(num_classes = NUM_CLASSES).to(DEVICE)
-#  optimizer = torch.optim.SGD(vit_model.parameters(), lr=LEARNING_RATE, weight_decay=0.03)
-   if OPTIMIZER.lower() == "adamw":
-      optimizer = torch.optim.AdamW(vit_model.parameters(), lr=LEARNING_RATE, weight_decay=0.03)
-   elif OPTIMIZER.lower() == "adam":
-      optimizer = torch.optim.Adam(vit_model.parameters(), lr=LEARNING_RATE)
-   else:
-      optimizer = torch.optim.SGD(vit_model.parameters(), lr=LEARNING_RATE, weight_decay=0.03)
-
+   optimizer = torch.optim.SGD(vit_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
    
-   train_dataloader, test_dataloader = data.prepare_dataloader(args)
+   # ------------------------------ W&B -------------------------------------------
+   # Single run across the entire curriculum, stage metrics are prefixed (e.g., "MNIST/Train Loss")
+   wandb_project = cfgs.get("wandb_project", "vit_curriculum")
+   wandb_runname = cfgs.get("wandb_runname", f"{exp_name}_lr{learning_rate}_d{vit_depth}_p{patch_size}")
+   run = wandb.init(project=wandb_project, name=wandb_runname, config=cfgs)
+   
+   for stage in curriculum:
+      stage_name = stage["name"]
+      stage_epochs = int(stage.get("epochs", 10))
 
-   train_model, train_loss, test_loss, train_acc, test_acc = train.train(model=vit_model,
-                                                                     train_dataloader=train_dataloader,
-                                                                     test_dataloader=test_dataloader,
-                                                                     optimizer=optimizer,
-                                                                     loss_fn=loss_fn,
-                                                                     accuracy_fn=accuracy_fn,
-                                                                     epoches=NUM_EPOCH,
-                                                                     device=DEVICE, args=args)
+      print(f"\n=== Stage: {stage_name.upper()} | Epochs: {stage_epochs} ===")
+      train_dataloader, test_dataloader, num_classes_current = data.prepare_dataloader(
+         dataset_name=stage_name,
+         batch_size=batch_size,
+         image_size=image_size,
+         root=dataset_root,
+      )
+      print(f"{stage_name}: num_classes = {num_classes_current}")
 
-   utils.save_model(model=train_model, traget_dir="./save_model", 
-                  model_name=f"vit_model_{POS_EMB_TYPE}.pth")
+      # Train+eval on this dataset
+      metrics = train.train(
+         stage_name=stage_name.upper(),
+         model=vit_model,
+         train_loader=train_dataloader,
+         test_loader=test_dataloader,
+         optimizer=optimizer,
+         loss_fn=loss_fn,
+         device=device,
+         epochs=stage_epochs,
+         num_classes_current=num_classes_current,
+         wandb_run=run,
+      )
+      
+      # Save a checkpoint after each stage
+      ckpt_name = f"vit_{stage_name}_ep{stage_epochs}.pth"
+      utils.save_model(model=vit_model, traget_dir=output_dir, model_name=ckpt_name)
+      
+   # ------------------------------ Final Evaluation on STL10 ---------------------
+   print("\n=== Final Evaluation on STL10 (test) ===")
+   _, stl_test_loader, stl_num_classes = data.prepare_dataloader(
+      dataset_name="stl10",
+      batch_size=batch_size,
+      image_size=image_size,
+      root=dataset_root,
+   )
+   # one pass eval
+   test_loss, test_acc = train.eval_loop(
+      model=vit_model,
+      dataloader=stl_test_loader,
+      loss_fn=loss_fn,
+      device=device,
+      num_classes_current=stl_num_classes,  # slice to 10
+   )
+   print(f"[STL10] Test Loss: {test_loss:.4f} | Test Acc: {test_acc:.4f}")
 
-   utils.plot(train_losses=train_loss, test_losses=test_loss, train_accs=train_acc, 
-         test_accs=test_acc, fig_name=f"loss_and_accuracy_{POS_EMB_TYPE}.jpg")
+   if run is not None:
+      run.log({
+         "STL10/Test Loss": test_loss,
+         "STL10/Test Acc":  test_acc
+      })
+      run.finish()
+      
    
     
 if __name__ == "__main__":
-   parser = argparse.ArgumentParser(description="Original Architecture of VIT")
-   parser.add_argument("--config", type=str, required=True, help="Path to the config file")
-   
+   parser = argparse.ArgumentParser(description="ViT Curriculum Learning")
+   parser.add_argument("--config", type=str, required=True, help="Path to YAML config file")
    args = parser.parse_args()
-   
-   # Load config file
-   with open(args.config, 'r') as file:
-      config = yaml.safe_load(file)
 
-   # Automatically generate wandb_runname
-   config['wandb_runname'] = f"{config['exp_name']}_{config['dataset_name']}_Lr_{config['learning_rate']}_EMB_{(config['patch_size'] ** 2) * 3}_patch_{config['patch_size']}_depth_{config['vit_depth']}_pos_emb_type_{config['pos_emb_type']}"
-   
-   main(config)
+   with open(args.config, "r") as f:
+      cfg = yaml.safe_load(f)
+
+   # IMPORTANT: Your model already prints EMBED SIZE using (patch_size**2)*3.
+   # Keep input_channel=3 in your config so ViT receives 3-channel images.
+
+   main(cfg)
