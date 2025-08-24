@@ -2,7 +2,8 @@
 exp_name: vit_curriculum
 model_num: 1
 details: "Curriculum learning across 6 datasets, final eval on STL10"
-seed: 42
+seed: 64
+optimizer_name: sgd
 
 # Dataset & training
 dataset_root: "./data"
@@ -10,7 +11,7 @@ dataset_name: "cifar10"   # not used directly, curriculum overrides
 input_image_size: 96
 input_channel: 3
 batch_size: 64
-num_epoch: 60              # total not used directly, stages define their own
+num_epoch: 60             # total not used directly, stages define their own
 learning_rate: 0.001
 weight_decay: 0.03
 
@@ -19,10 +20,10 @@ patch_size: 16
 num_head: 8
 vit_depth: 12
 num_class: 100             # fixed head for curriculum learning
-pos_emb_type: "linear"
+pos_emb_type: "sinusoidal" # linear sinusoidal rope
 
 # Logging & saving
-wandb_project: "vit_curriculum_project"
+wandb_project: "vit-small-data"
 wandb_runname: ""
 output_dir: "./checkpoints"
 

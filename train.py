@@ -133,7 +133,7 @@ def train(stage_name: str,
           test_dataloader: torch.utils.data.DataLoader, 
           optimizer: torch.optim.Optimizer,
           loss_fn: torch.nn.Module, 
-          epoches: int, 
+          epochs: int, 
           device: torch.device,
           num_current_classes: int, 
           wandb_run = None
@@ -164,7 +164,7 @@ def train(stage_name: str,
     best_test_acc = 0.0
     last_metrics: Dict[str, float] = {}
     
-    for epoch in tqdm(range(1, epoches+1)):
+    for epoch in tqdm(range(1, epochs+1)):
         
         train_loss, train_acc = train_loop(model=model, dataloader=train_dataloader, 
                                             optimizer=optimizer, loss_fn=loss_fn, device=device, 
@@ -186,7 +186,7 @@ def train(stage_name: str,
         if eval_acc > best_test_acc:
             best_test_acc = eval_acc
         
-        print(f"\n[{stage_name}] Epoch: {epoch}/[{epoches}] \tTrain Loss: {train_loss:.5f} Test Loss: {eval_loss:.5f}  ||  Train Accuracy:  {train_acc:.5f}  Test Accuracy: {eval_acc:.5f}")
+        print(f"\n[{stage_name}] Epoch: {epoch}/[{epochs}] \tTrain Loss: {train_loss:.5f} Test Loss: {eval_loss:.5f}  ||  Train Accuracy:  {train_acc:.5f}  Test Accuracy: {eval_acc:.5f}")
         
         last_metrics = {
             "train_acc": train_acc,

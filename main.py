@@ -68,9 +68,10 @@ def main(cfgs: dict):
    print(f"Patch Size: {cfgs['patch_size']}")
    print(f"Embedding Size: {(cfgs['patch_size'] ** 2) * 3}")
    print(f"Number of Heads: {cfgs['num_head']}")
-   print(f"ViT Depth: {cfgs['vit_depth']}")
+   print(f"ViT Deptlinearh: {cfgs['vit_depth']}")
    print(f"Batch Size: {cfgs['batch_size']}")
    print(f"Number of Classes: {cfgs['num_class']}")
+   print(f"curriculum: {cfgs['curriculum']}")
    print(f"Position Embed Use: {cfgs['pos_emb_type']}")
    print(f"WandB Project: {cfgs['wandb_project']}")
    print(f"WandB Run Name: {cfgs['wandb_runname']}")
@@ -103,9 +104,9 @@ def main(cfgs: dict):
    weight_decay    = float(cfgs.get("weight_decay", 0.03))
    num_heads       = int(cfgs.get("num_head", 8))
    patch_size      = int(cfgs.get("patch_size", 16))
+   in_channels     = int(cfgs.get("input_channel", 3))
    embed_size      = (patch_size ** 2) * in_channels
    vit_depth       = int(cfgs.get("vit_depth", 12))
-   in_channels     = int(cfgs.get("input_channel", 3))
    pos_type        = cfgs.get("pos_emb_type", "linear")
    output_dir      = cfgs.get("output_dir", "./checkpoints")
    os.makedirs(output_dir, exist_ok=True)
@@ -141,7 +142,8 @@ def main(cfgs: dict):
    # ------------------------------ W&B -------------------------------------------
    # Single run across the entire curriculum, stage metrics are prefixed (e.g., "MNIST/Train Loss")
    wandb_project = cfgs.get("wandb_project", "vit_curriculum")
-   wandb_runname = cfgs.get("wandb_runname", f"{exp_name}_lr{learning_rate}_d{vit_depth}_p{patch_size}")
+  #  wandb_runname = cfgs.get("wandb_runname", f"{exp_name}_lr{learning_rate}_d{vit_depth}_p{patch_size}")
+   wandb_runname = f"{exp_name}_lr{learning_rate}_d{vit_depth}_p{patch_size}"
    run = wandb.init(project=wandb_project, name=wandb_runname, config=cfgs)
    
    for stage in curriculum:
@@ -149,25 +151,25 @@ def main(cfgs: dict):
       stage_epochs = int(stage.get("epochs", 10))
 
       print(f"\n=== Stage: {stage_name.upper()} | Epochs: {stage_epochs} ===")
-      train_dataloader, test_dataloader, num_classes_current = data.prepare_dataloader(
+      train_dataloader, test_dataloader, num_current_classes = data.prepare_dataloader(
          dataset_name=stage_name,
          batch_size=batch_size,
          image_size=image_size,
          root=dataset_root,
       )
-      print(f"{stage_name}: num_classes = {num_classes_current}")
+      print(f"{stage_name}: num_classes = {num_current_classes}")
 
       # Train+eval on this dataset
       metrics = train.train(
          stage_name=stage_name.upper(),
          model=vit_model,
-         train_loader=train_dataloader,
-         test_loader=test_dataloader,
+         train_dataloader=train_dataloader,
+         test_dataloader=test_dataloader,
          optimizer=optimizer,
          loss_fn=loss_fn,
          device=device,
          epochs=stage_epochs,
-         num_classes_current=num_classes_current,
+         num_current_classes=num_current_classes,
          wandb_run=run,
       )
       
