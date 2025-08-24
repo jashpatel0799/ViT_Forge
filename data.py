@@ -92,6 +92,12 @@ def get_dataset(
         dataset = datasets.CIFAR100(root=root, train=train, transform=transform, download=True)
         return dataset, 100
     
+    if key == "stl10":
+        transform = build_transforms(image_size=image_size, grayscale_to_rgb=False)
+        split = "train" if train else "test"
+        ds = datasets.STL10(root=root, split=split, transform=transform, download=True)
+        return ds, 10
+    
     else:
         raise ValueError(f"Unsupported dataset: {name}")
         
