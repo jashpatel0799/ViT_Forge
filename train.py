@@ -73,10 +73,10 @@ def train_loop(model: nn.Module,
         # print("ACC:", acc)
         # print("Loss:", loss)
         
-    train_loss /= len(dataloader)
-    train_acc /= len(dataloader)
+    train_loss = train_loss / max(1, n_batches)
+    train_acc = train_acc / max(1, n_batches)
     
-    return train_loss / max(1, n_batches), train_acc / max(1, n_batches)
+    return train_loss, train_acc
 
 @torch.no_grad()
 def eval_loop(model: nn.Module, 
@@ -119,10 +119,10 @@ def eval_loop(model: nn.Module,
             eval_acc += acc
             n_batches += 1
             
-        eval_loss /= len(dataloader)
-        eval_acc /= len(dataloader)
+        eval_loss = eval_loss / max(1, n_batches)
+        eval_acc = eval_acc / max(1, n_batches)
         
-    return eval_loss / max(1, n_batches), eval_acc / max(1, n_batches)
+    return eval_loss, eval_acc
         
         
         

@@ -27,7 +27,6 @@ import random
 import numpy as np
 import data, model, train, utils
 import wandb
-from torchsummary import summary
 
 
 # SEED = 64
@@ -132,9 +131,6 @@ def main(cfgs: dict):
    vit_model = model.vit(in_channel=in_channels, img_size=image_size, patch_size=patch_size, 
                      num_heads=num_heads, embedding_size=embed_size, batch_size=batch_size, 
                      depth=vit_depth, num_class=fixed_num_classes, pos_type=pos_type).to(device)
-   
-#  model summary
-   summary(vit_model, (in_channels, image_size, image_size))   
 
    loss_fn = torch.nn.CrossEntropyLoss()
    optimizer = torch.optim.SGD(vit_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
@@ -191,7 +187,7 @@ def main(cfgs: dict):
       dataloader=stl_test_loader,
       loss_fn=loss_fn,
       device=device,
-      num_classes_current=stl_num_classes,  # slice to 10
+      num_current_classes=stl_num_classes,  # slice to 10
    )
    print(f"[STL10] Test Loss: {test_loss:.4f} | Test Acc: {test_acc:.4f}")
 
