@@ -139,7 +139,7 @@ def main(cfgs: dict):
    # Single run across the entire curriculum, stage metrics are prefixed (e.g., "MNIST/Train Loss")
    wandb_project = cfgs.get("wandb_project", "vit_curriculum")
   #  wandb_runname = cfgs.get("wandb_runname", f"{exp_name}_lr{learning_rate}_d{vit_depth}_p{patch_size}")
-   wandb_runname = f"{exp_name}_lr{learning_rate}_d{vit_depth}_p{patch_size}"
+   wandb_runname = f"{exp_name}_pos-{pos_type}_lr{learning_rate}_d{vit_depth}_p{patch_size}"
    run = wandb.init(project=wandb_project, name=wandb_runname, config=cfgs)
    
    for stage in curriculum:
