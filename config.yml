@@ -3,15 +3,15 @@ exp_name: vit_curriculum
 model_num: 1
 details: "Curriculum learning across 6 datasets, final eval on STL10"
 seed: 64
-optimizer_name: sgd
+optimizer_name: adamw
 
 # Dataset & training
 dataset_root: "./data"
 dataset_name: "cifar10"   # not used directly, curriculum overrides
-input_image_size: 96
+input_image_size: 64
 input_channel: 3
 batch_size: 64
-num_epoch: 60             # total not used directly, stages define their own
+num_epoch: 135             # total not used directly, stages define their own
 learning_rate: 0.001
 weight_decay: 0.03
 
@@ -29,12 +29,12 @@ output_dir: "./checkpoints"
 
 # Curriculum sequence
 curriculum:
-  - { name: mnist,        epochs: 10 }
-  - { name: emnist,       epochs: 10 }
-  - { name: fashionmnist, epochs: 10 }
-  - { name: svhn,         epochs: 10 }
-  - { name: cifar10,      epochs: 10 }
-  - { name: cifar100,     epochs: 10 }
+  - { name: mnist,        epochs: 15 }
+  - { name: emnist,       epochs: 25 }
+  - { name: fashionmnist, epochs: 20 }
+  - { name: svhn,         epochs: 25 }
+  - { name: cifar10,      epochs: 25 }
+  - { name: cifar100,     epochs: 25 }
 
 
 

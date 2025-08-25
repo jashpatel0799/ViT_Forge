@@ -114,11 +114,11 @@ def main(cfgs: dict):
    # You can override in config with `curriculum` list if you prefer.
    curriculum = cfgs.get("curriculum", [
       {"name": "mnist",        "epochs": 10},
-      {"name": "emnist",       "epochs": 10},
-      {"name": "fashionmnist", "epochs": 10},
-      {"name": "svhn",         "epochs": 10},
-      {"name": "cifar10",      "epochs": 10},
-      {"name": "cifar100",     "epochs": 10},
+      {"name": "emnist",       "epochs": 25},
+      {"name": "fashionmnist", "epochs": 15},
+      {"name": "svhn",         "epochs": 25},
+      {"name": "cifar10",      "epochs": 25},
+      {"name": "cifar100",     "epochs": 25},
    ])
    
    device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
@@ -133,7 +133,8 @@ def main(cfgs: dict):
                      depth=vit_depth, num_class=fixed_num_classes, pos_type=pos_type).to(device)
 
    loss_fn = torch.nn.CrossEntropyLoss()
-   optimizer = torch.optim.SGD(vit_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+   # optimizer = torch.optim.SGD(vit_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+   optimizer = torch.optim.AdamW(vit_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
    
    # ------------------------------ W&B -------------------------------------------
    # Single run across the entire curriculum, stage metrics are prefixed (e.g., "MNIST/Train Loss")
