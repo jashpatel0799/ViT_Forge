@@ -12,7 +12,7 @@ input_image_size: 64
 input_channel: 3
 batch_size: 64
 num_epoch: 135             # total not used directly, stages define their own
-learning_rate: 0.001
+learning_rate: 0.0006
 weight_decay: 0.03
 
 # Model
@@ -20,7 +20,7 @@ patch_size: 16
 num_head: 8
 vit_depth: 12
 num_class: 100             # fixed head for curriculum learning
-pos_emb_type: "sinusoidal" # linear sinusoidal rope
+pos_emb_type: "rope" # linear sinusoidal rope
 
 # Logging & saving
 wandb_project: "vit-small-data"
@@ -30,11 +30,11 @@ output_dir: "./checkpoints"
 # Curriculum sequence
 curriculum:
   - { name: mnist,        epochs: 15 }
-  - { name: emnist,       epochs: 25 }
-  - { name: fashionmnist, epochs: 20 }
-  - { name: svhn,         epochs: 25 }
-  - { name: cifar10,      epochs: 25 }
-  - { name: cifar100,     epochs: 25 }
+  - { name: fashionmnist, epochs: 11 }
+  - { name: emnist,       epochs: 11 }
+  - { name: svhn,         epochs: 11 }
+  - { name: cifar10,      epochs: 11 }
+  - { name: cifar100,     epochs: 11 }
 
 
 
