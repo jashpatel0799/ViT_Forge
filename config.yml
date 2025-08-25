@@ -11,7 +11,7 @@ dataset_name: "cifar10"   # not used directly, curriculum overrides
 input_image_size: 64
 input_channel: 3
 batch_size: 64
-num_epoch: 135             # total not used directly, stages define their own
+num_epoch: 70             # total not used directly, stages define their own
 learning_rate: 0.0006
 weight_decay: 0.03
 
