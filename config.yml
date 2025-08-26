@@ -20,7 +20,7 @@ patch_size: 16
 num_head: 8
 vit_depth: 12
 num_class: 100             # fixed head for curriculum learning
-pos_emb_type: "rope" # linear sinusoidal rope
+pos_emb_type: "linear" # linear sinusoidal rope
 
 # Logging & saving
 wandb_project: "vit-small-data"
